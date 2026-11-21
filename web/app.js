@@ -88,6 +88,7 @@
     sort: '<path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/>'
   };
   const I = (name, size, sw) => svg(P[name], size, sw);
+  const LOGO = (size) => `<svg width="${size}" height="${size}" viewBox="86.0 86.0 340 340" aria-hidden="true"><rect x="203.0" y="110.0" width="166" height="232" rx="28" fill="#fff" fill-opacity=".38"/><rect x="173.0" y="140.0" width="166" height="232" rx="28" fill="#fff" fill-opacity=".66"/><path d="M171.0 170.0H251.0L309.0 228.0V374.0a28 28 0 0 1-28 28H171.0a28 28 0 0 1-28-28V198.0a28 28 0 0 1 28-28Z" fill="#fff"/><path d="M251.0 170.0V210.0a18 18 0 0 0 18 18H309.0Z" fill="#B9D9FF"/></svg>`;
 
   /* ================================================================== */
   /* Einstellungen (lokal im Browser)                                     */
@@ -463,7 +464,7 @@
     return `
       <div class="shell">
         <aside class="sidebar" aria-label="Navigation">
-          <a class="brand" href="#/"><span class="brand-mark">${I('doc')}</span>${esc(CFG.appName)}</a>
+          <a class="brand" href="#/"><span class="brand-mark">${LOGO(22)}</span>${esc(CFG.appName)}</a>
           <button type="button" class="quick" data-action="palette">${I('search', 16)}<span>Schnellsuche</span><span class="kbd">⌘K</span></button>
           <nav class="nav">
             ${nav('#/', 'home', 'grid', 'Übersicht')}
@@ -552,7 +553,7 @@
     $app.innerHTML = `
       <div class="login">
         <form class="card" id="loginForm" autocomplete="on">
-          <div class="brand"><span class="brand-mark">${I('doc', 24)}</span>${esc(CFG.appName)}</div>
+          <div class="brand"><span class="brand-mark">${LOGO(30)}</span>${esc(CFG.appName)}</div>
           <p class="muted login-sub">Mit deinem Paperless-Konto anmelden</p>
           <div class="field"><label for="u">Benutzername</label><input class="input" id="u" name="username" autocomplete="username" autocapitalize="none" required></div>
           <div class="field"><label for="p">Passwort</label><input class="input" id="p" name="password" type="password" autocomplete="current-password" required></div>
