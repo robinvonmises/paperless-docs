@@ -81,9 +81,17 @@ PAPERLESS_CORS_ALLOWED_HOSTS=https://docs.example.com
 Fehlt die Freigabe, zeigt die Anmeldeseite genau diese Zeile mit der richtigen
 Adresse an. Paperless muss per HTTPS erreichbar sein, wenn Docs per HTTPS läuft.
 
-Weil die App rein statisch ist, kann sie in dieser Betriebsart auch ohne
-Container laufen, z. B. auf GitHub Pages oder einem beliebigen Webserver: einfach
-den Ordner `web/` ausliefern.
+Weil die App rein statisch ist, kann sie in dieser Betriebsart auch ganz ohne
+eigenen Server laufen: Der Ordner `web/` lässt sich auf jedem Webserver ausliefern.
+
+### GitHub Pages
+
+Dieses Repository veröffentlicht `web/` bei jedem Push automatisch auf GitHub Pages:
+**https://robinvonmises.github.io/paperless-alternative-frontend/**
+
+Für einen eigenen Fork: *Settings → Pages → Build and deployment → Source:
+GitHub Actions* wählen. Die Paperless-Instanz braucht dann
+`PAPERLESS_CORS_ALLOWED_HOSTS=https://<benutzer>.github.io`.
 
 Dann im Reverse Proxy (z. B. Nginx Proxy Manager) einen Host anlegen,
 z. B. `docs.example.com` → `<docker-host>:8090`, mit SSL.

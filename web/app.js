@@ -610,7 +610,7 @@
         <form class="card" id="loginForm" autocomplete="on">
           <div class="brand"><span class="brand-mark">${LOGO(30)}</span>${esc(CFG.appName)}</div>
           <p class="muted login-sub">Mit deinem Paperless-Konto anmelden</p>
-          ${DIRECT ? `<div class="field"><label for="srv">Paperless-Adresse</label><input class="input" id="srv" name="server" type="url" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="https://paperless.example.com" value="${esc(cur)}" required></div>` : ''}
+          ${DIRECT ? `<div class="field"><label for="srv">Paperless-Adresse</label><input class="input" id="srv" name="server" type="text" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="https://paperless.example.com" value="${esc(cur)}" required></div>` : ''}
           <div class="field"><label for="u">Benutzername</label><input class="input" id="u" name="username" autocomplete="username" autocapitalize="none" value="${esc(keep.user || '')}" required></div>
           <div class="field"><label for="p">Passwort</label><input class="input" id="p" name="password" type="password" autocomplete="current-password" required></div>
           <label class="checkline"><input type="checkbox" id="remember" checked> Angemeldet bleiben</label>
@@ -1340,7 +1340,7 @@
       if (act === 'back') goBack();
       if (act === 'done') { await markDone(doc); renderDoc(doc.id, false); }
       if (act === 'copy') {
-        const link = location.origin + '/#/doc/' + doc.id;
+        const link = location.href.split('#')[0] + '#/doc/' + doc.id;
         try { await navigator.clipboard.writeText(link); toast('Link kopiert'); } catch (err) { prompt('Link:', link); }
       }
       if (act === 'delete') {
