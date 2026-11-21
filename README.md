@@ -28,7 +28,7 @@ There are **two ways** to use it:
 | Address | `https://robinvonmises.github.io/paperless-docs/` | your own, e.g. `docs.example.com` |
 | Guide | [below](#use-it-with-your-own-paperless-in-5-steps) | [self-hosting](#self-hosting) |
 
-> The app interface is currently in **German**.
+> The app speaks **English and German** – it follows your browser language, and you can switch it under *Settings → Language*.
 
 ## Contents
 
@@ -105,9 +105,9 @@ You should see `PAPERLESS_CORS_ALLOWED_HOSTS=https://robinvonmises.github.io`.
 ### Step 4 – Sign in
 
 1. Open **https://robinvonmises.github.io/paperless-docs/**
-2. **Paperless-Adresse** (Paperless address): your address, e.g. `paperless.example.com`
-3. **Benutzername** / **Passwort**: your normal Paperless username and password
-4. Tap **Anmelden** (sign in)
+2. **Paperless address**: your address, e.g. `paperless.example.com`
+3. **Username** / **Password**: your normal Paperless username and password
+4. Tap **Sign in**
 
 Done. 🎉
 
@@ -125,9 +125,9 @@ Docs then opens like a normal app, without the browser bar.
 
 | What you see | What it means | What to do |
 |---|---|---|
-| *„Keine Verbindung zu … PAPERLESS_CORS_ALLOWED_HOSTS=…“* | Your Paperless doesn't allow Docs yet, or the address is wrong | Check the address. Do steps 2 and 3 again, use **`docker compose up -d`** and check with the `grep CORS` command. |
-| *„… darf deshalb keine HTTP-Adresse ansprechen“* | Your Paperless only runs on `http://` | Docs needs `https://`. Put Paperless behind a reverse proxy with SSL (e.g. Nginx Proxy Manager, Caddy, Traefik) – or [host Docs yourself](#self-hosting) in your network. |
-| *„Benutzername oder Passwort falsch“* | Wrong login | Use the same login as in the Paperless web interface. |
+| *“Could not connect to … PAPERLESS_CORS_ALLOWED_HOSTS=…”* | Your Paperless doesn't allow Docs yet, or the address is wrong | Check the address. Do steps 2 and 3 again, use **`docker compose up -d`** and check with the `grep CORS` command. |
+| *“… cannot connect to an HTTP address”* | Your Paperless only runs on `http://` | Docs needs `https://`. Put Paperless behind a reverse proxy with SSL (e.g. Nginx Proxy Manager, Caddy, Traefik) – or [host Docs yourself](#self-hosting) in your network. |
+| *“Wrong username or password”* | Wrong login | Use the same login as in the Paperless web interface. |
 | Works at home, not on the go | Paperless is only reachable in your home network | Connect through your VPN, or self-host Docs inside your network. |
 | You see fewer documents than expected | Docs shows exactly what **your** Paperless user is allowed to see | Check permissions/owner in Paperless. |
 
@@ -140,7 +140,7 @@ Docs is a pure browser app: just HTML, CSS and JavaScript. **There is no Docs se
 | What | Where it goes / is stored |
 |---|---|
 | Your **password** | Sent **once, directly** from your browser to **your** Paperless to get a login token. Stored nowhere. |
-| **Login token** | Only in your browser on your device (if "Angemeldet bleiben" / stay signed in is on). |
+| **Login token** | Only in your browser on your device (if "Stay signed in" is on). |
 | **Paperless address**, favourites, view settings | Only in your browser on your device. |
 | **Your documents** | Go directly from your Paperless to your browser. Never through GitHub. |
 | **GitHub** | Only delivers the app files – like any website. It sees that the page was loaded, nothing else. |
@@ -149,7 +149,7 @@ Good to know:
 
 - **The code is the trust anchor.** The hosted version is built from exactly the code in this repository.
   If you'd rather not trust that, [host it yourself](#self-hosting) – it's the same app.
-- **The token is like a key and doesn't expire.** "Abmelden" (sign out) removes it from the device.
+- **The token is like a key and doesn't expire.** "Sign out" removes it from the device.
   If you lose a device, create a new API token in Paperless under *Profile* – the old one stops working.
 - **The CORS line only allows this one page** to talk to your Paperless. It does not open Paperless
   to anyone; a login is still required.
@@ -172,7 +172,7 @@ Good to know:
 - **Document view** – preview, details, notes, similar documents, quick tag editing, flip through the list with <kbd>←</kbd> <kbd>→</kbd>
 - **Upload / scan** – drag & drop on desktop, camera on the phone, live processing status
 - **Browse** – all tags, correspondents, types and storage paths as cards with counts
-- **Settings** – light / dark / automatic, default view, choose your areas and colours
+- **Settings** – light / dark / automatic, language (English / German), default view, choose your areas and colours
 - **Keyboard shortcuts** – press <kbd>?</kbd> in the app
 
 ---
@@ -236,7 +236,7 @@ Each Paperless that should be used with it needs
 | `DOCS_AREAS` | Areas on the overview: `Tag:#colour,Tag:#colour`. Empty = your 8 most used tags |
 | `DOCS_ALLOWED_SERVERS` | Only "address at sign-in": allowed Paperless addresses (space-separated). Empty = any |
 
-Areas and colours can also be changed by everyone in the app under *Einstellungen* (settings) – that applies to that browser.
+Areas and colours can also be changed by everyone in the app under *Settings* – that applies to that browser.
 
 ### Your own GitHub Pages copy
 

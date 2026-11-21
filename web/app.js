@@ -30,8 +30,14 @@
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   const num = (v) => { const n = parseInt(v, 10); return Number.isFinite(n) && n > 0 ? n : null; };
   const docDate = (d) => String(d.created_date || d.created || '').slice(0, 10);
-  const fmtDate = (s) => { if (!s) return ''; const d = String(s).slice(0, 10).split('-'); return d.length === 3 ? `${d[2]}.${d[1]}.${d[0]}` : s; };
-  const monthName = (y, m) => new Date(+y, +m - 1, 1).toLocaleDateString('de-DE', { month: 'long' });
+  const I18N = window.DOCS_I18N || { lang: 'de', locale: 'de-DE', pref: 'auto' };
+  const fmtDate = (s) => {
+    if (!s) return '';
+    const d = String(s).slice(0, 10).split('-');
+    if (d.length !== 3) return s;
+    return new Date(+d[0], +d[1] - 1, +d[2]).toLocaleDateString(I18N.locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+  const monthName = (y, m) => new Date(+y, +m - 1, 1).toLocaleDateString(I18N.locale, { month: 'long' });
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const initial = (s) => (String(s || '?').trim().match(/[A-Za-zÄÖÜäöü0-9]/) || ['?'])[0].toUpperCase();
@@ -712,7 +718,7 @@
     ]);
     const h = now.getHours();
     const greet = h < 11 ? 'Guten Morgen' : h < 18 ? 'Guten Tag' : 'Guten Abend';
-    const today = now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const today = now.toLocaleDateString(I18N.locale, { weekday: 'long', day: 'numeric', month: 'long' });
     const areas = areaList();
     const topCorr = sortedByCount(meta.corr).slice(0, 10);
 
@@ -1571,6 +1577,10 @@
           <div class="seg" role="group" aria-label="Design">
             <button type="button" data-theme="light">Hell</button><button type="button" data-theme="dark">Dunkel</button><button type="button" data-theme="auto">Automatisch</button>
           </div>
+          <span class="flabel muted">Sprache</span>
+          <div class="seg" role="group" aria-label="Sprache">
+            <button type="button" data-lang="auto">Automatisch</button><button type="button" data-lang="de">Deutsch</button><button type="button" data-lang="en">English</button>
+          </div>
           <span class="flabel muted">Standardansicht für Listen</span>
           <div class="seg" role="group" aria-label="Standardansicht">${VIEWS.map(([v, l, ic]) => `<button type="button" data-defview="${v}">${I(ic, 16)}<span class="hide-m">${l}</span></button>`).join('')}</div>
         </section>
@@ -1610,6 +1620,7 @@
     const mark = () => {
       m.querySelectorAll('[data-theme]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-theme') === prefs.theme));
       m.querySelectorAll('[data-defview]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-defview') === prefs.view));
+      m.querySelectorAll('[data-lang]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-lang') === (prefs.lang || 'auto')));
     };
     const saveAreas = () => {
       const list = [];
@@ -1625,8 +1636,10 @@
       if (sb) { const tmp = document.createElement('div'); tmp.innerHTML = shell('settings', ''); sb.replaceWith(tmp.querySelector('.sidebar')); applyColors(document.querySelector('.sidebar')); }
     };
     m.addEventListener('click', (e) => {
-      const th = e.target.closest('[data-theme]');
+      const th = e.target.closest('button[data-theme]');
       if (th) { prefs.theme = th.getAttribute('data-theme'); savePrefs(); applyTheme(); mark(); return; }
+      const lg = e.target.closest('[data-lang]');
+      if (lg) { prefs.lang = lg.getAttribute('data-lang'); savePrefs(); location.reload(); return; }
       const dv = e.target.closest('[data-defview]');
       if (dv) { prefs.view = dv.getAttribute('data-defview'); savePrefs(); mark(); return; }
       const cy = e.target.closest('[data-cycle]');

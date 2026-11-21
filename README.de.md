@@ -15,7 +15,7 @@
 
 ---
 
-Docs ist eine andere Oberfläche für das Paperless-ngx, das du schon betreibst. Paperless macht
+Docs ist eine andere Oberfläche für das Paperless-ngx, das du schon betreibst. Die App spricht Deutsch und Englisch und richtet sich nach der Sprache deines Browsers (umstellbar unter *Einstellungen → Sprache*). Paperless macht
 im Hintergrund weiter die ganze Arbeit (Texterkennung, Workflows, Mail, Consume-Ordner, Berechtigungen).
 Docs macht nur das Alltägliche – finden, sortieren, ablegen – schneller und schöner.
 
@@ -170,7 +170,7 @@ Gut zu wissen:
 - **Dokumentansicht** – Vorschau, Details, Notizen, ähnliche Dokumente, Tags schnell ändern, mit <kbd>←</kbd> <kbd>→</kbd> durch die Liste blättern
 - **Hochladen / Scannen** – Drag & Drop am Desktop, Kamera am Handy, Verarbeitungsstatus live
 - **Durchstöbern** – alle Tags, Korrespondenten, Typen und Speicherpfade als Karten mit Anzahl
-- **Einstellungen** – hell / dunkel / automatisch, Standardansicht, Bereiche und Farben wählen
+- **Einstellungen** – hell / dunkel / automatisch, Sprache (Deutsch / Englisch), Standardansicht, Bereiche und Farben wählen
 - **Tastenkürzel** – in der App <kbd>?</kbd> drücken
 
 ---
