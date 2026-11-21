@@ -39,14 +39,14 @@ Es gibt zwei Betriebsarten, gewählt über `PAPERLESS_UPSTREAM`:
 ## Installation (Docker Compose)
 
 Das Image wird bei jedem Push auf `main` automatisch gebaut und in der GitHub
-Container Registry abgelegt: `ghcr.io/robinvonmises/paperless-alternative-frontend:latest`
+Container Registry abgelegt: `ghcr.io/robinvonmises/paperless-docs:latest`
 (amd64 und arm64).
 
 ### Feste Instanz
 
 ```yaml
   docs:
-    image: ghcr.io/robinvonmises/paperless-alternative-frontend:latest
+    image: ghcr.io/robinvonmises/paperless-docs:latest
     restart: unless-stopped
     ports:
       - "8090:80"
@@ -64,7 +64,7 @@ und `PAPERLESS_PUBLIC_URL: https://paperless.example.com`.
 
 ```yaml
   docs:
-    image: ghcr.io/robinvonmises/paperless-alternative-frontend:latest
+    image: ghcr.io/robinvonmises/paperless-docs:latest
     restart: unless-stopped
     ports:
       - "8090:80"
@@ -87,7 +87,7 @@ eigenen Server laufen: Der Ordner `web/` lässt sich auf jedem Webserver auslief
 ### GitHub Pages
 
 Dieses Repository veröffentlicht `web/` bei jedem Push automatisch auf GitHub Pages:
-**https://robinvonmises.github.io/paperless-alternative-frontend/**
+**https://robinvonmises.github.io/paperless-docs/**
 
 Für einen eigenen Fork: *Settings → Pages → Build and deployment → Source:
 GitHub Actions* wählen. Die Paperless-Instanz braucht dann
