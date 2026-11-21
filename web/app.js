@@ -1,11 +1,11 @@
-/* Archiv – alternative Oberfläche für Paperless-ngx
+/* Docs – alternative Oberfläche für Paperless-ngx
  * Reines JavaScript ohne Build-Schritt. Spricht über /api (vom nginx-Container weitergeleitet)
  * mit Paperless und meldet sich per Paperless-Token an.
  */
 (function () {
   'use strict';
 
-  const CFG = window.ARCHIV_CONFIG || { appName: 'Archiv', areas: [] };
+  const CFG = window.ARCHIV_CONFIG || { appName: 'Docs', areas: [] };
   const $app = document.getElementById('app');
   const $toast = document.getElementById('toast');
   const PALETTE = ['#A2845E', '#FF9500', '#34C759', '#FF3B30', '#FF2D55', '#5856D6', '#30B0C7', '#FFCC00', '#007AFF', '#8E8E93', '#64D2FF', '#AF52DE'];
@@ -769,7 +769,7 @@
       if (dims[0] === 'path') return { kicker: 'Ablage', title: pathName(s.path) || 'Ablage', active: 'docs' };
     }
     if (s.search) return { kicker: 'Volltext', title: 'Suche', active: 'search' };
-    if (!filterCount(s) && !s.q) return { kicker: 'Archiv', title: 'Alle Dokumente', active: 'docs' };
+    if (!filterCount(s) && !s.q) return { kicker: 'Docs', title: 'Alle Dokumente', active: 'docs' };
     return { kicker: 'Gefiltert', title: 'Dokumente', active: 'docs' };
   }
 
@@ -984,7 +984,7 @@
         if (a === 'zip') {
           toast('ZIP wird erstellt …');
           const blob = await api('/documents/bulk_download/', { method: 'POST', json: { documents: ids, content: 'archive', follow_formatting: true }, blob: true });
-          saveBlob(blob, `archiv-${ids.length}-dokumente.zip`);
+          saveBlob(blob, `docs-${ids.length}-dokumente.zip`);
         }
         if (a === 'del') {
           if (await confirmSheet('Dokumente löschen?', `${plural(ids.length, 'Dokument wird', 'Dokumente werden')} in den Papierkorb von Paperless verschoben.`, 'Löschen', true)) {
@@ -1449,7 +1449,7 @@
     if (!kinds.some((k) => k[0] === kind)) kind = 'tags';
     let sortBy = 'count';
     mount('browse', `
-      <div class="stack tight"><span class="eyebrow">Archiv</span><h1 class="title">Durchstöbern</h1></div>
+      <div class="stack tight"><span class="eyebrow">Docs</span><h1 class="title">Durchstöbern</h1></div>
       <div class="toolbar">
         <div class="seg" role="group" aria-label="Art">${kinds.map(([k, l]) => `<button type="button" data-k="${k}">${l}</button>`).join('')}</div>
         <form class="searchbar" role="search" id="brs">${I('search')}<label class="sr-only" for="brq">Filtern</label><input id="brq" type="search" placeholder="Filtern …" autocomplete="off"></form>

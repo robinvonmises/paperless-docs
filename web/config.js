@@ -1,7 +1,7 @@
 // Anpassbare Einstellungen der App.
 // "areas": welche Tags auf der Übersicht als Bereiche erscheinen (Name exakt wie in Paperless) und in welcher Farbe.
 window.ARCHIV_CONFIG = {
-  appName: 'Archiv',
+  appName: 'Docs',
   // Link zur normalen Paperless-Oberfläche in der Seitenleiste (leer lassen = ausblenden)
   classicUrl: 'https://paperless.vonometzinski.de',
   areas: [

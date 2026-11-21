@@ -1,6 +1,6 @@
 {
-  "name": "Archiv",
-  "short_name": "Archiv",
+  "name": "Docs",
+  "short_name": "Docs",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

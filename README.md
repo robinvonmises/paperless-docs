@@ -1,4 +1,4 @@
-# Archiv – eine aufgeräumte Oberfläche für Paperless-ngx
+# Docs – eine aufgeräumte Oberfläche für Paperless-ngx
 
 Eine schlanke Web-App im hellen Apple-Stil, die auf eine bestehende
 [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx)-Instanz zugreift.
