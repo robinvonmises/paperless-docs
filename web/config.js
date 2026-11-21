@@ -1,21 +1,10 @@
-// Anpassbare Einstellungen der App.
-// "areas": welche Tags auf der Übersicht als Bereiche erscheinen (Name exakt wie in Paperless) und in welcher Farbe.
+// Optionale Anpassungen. Im Docker-Container geht das bequemer über Umgebungsvariablen
+// (DOCS_NAME, DOCS_AREAS, PAPERLESS_PUBLIC_URL), siehe README.
 window.ARCHIV_CONFIG = {
   appName: 'Docs',
-  // Link zur normalen Paperless-Oberfläche in der Seitenleiste (leer lassen = ausblenden)
-  classicUrl: 'https://paperless.vonometzinski.de',
-  areas: [
-    { tag: 'Haus', color: '#A2845E' },
-    { tag: 'Bank', color: '#FF9500' },
-    { tag: 'Internet & Telefon', color: '#34C759' },
-    { tag: 'Steuer', color: '#FF3B30' },
-    { tag: 'Gesundheit', color: '#FF2D55' },
-    { tag: 'Versicherung', color: '#5856D6' },
-    { tag: 'Abos', color: '#30B0C7' },
-    { tag: 'Energie', color: '#FFCC00' },
-    { tag: 'Arbeit', color: '#007AFF' },
-    { tag: 'Gewerbe', color: '#8E8E93' },
-    { tag: 'Auto', color: '#64D2FF' },
-    { tag: 'Elterngeld', color: '#AF52DE' }
-  ]
+  // Link zur normalen Paperless-Oberfläche (im Modus mit Adresseingabe automatisch die angegebene Instanz)
+  classicUrl: '',
+  // Bereiche auf der Übersicht: Tag-Name exakt wie in Paperless plus Farbe.
+  // Leer = automatisch die acht häufigsten Tags. Jeder kann das in der App unter Einstellungen ändern.
+  areas: []
 };

@@ -19,14 +19,22 @@ für das, was man täglich macht.
 
 ## Wie es funktioniert
 
-Ein kleiner nginx-Container liefert die App aus und leitet alles unter `/api/`
-an Paperless weiter. Dadurch braucht es weder CORS noch einen fest
-eingebauten API-Token: Man meldet sich mit seinem Paperless-Benutzer an und
+Docs ist eine reine Browser-App: HTML, CSS und JavaScript, ohne eigene Datenbank
+und ohne Server-Logik. Auf dem Server wird nichts gespeichert. Alles, was die App
+sich merkt (Anmelde-Token, Paperless-Adresse, Merkliste, Ansicht, Design), liegt
+im Browser des jeweiligen Geräts.
+
+Der Login holt über `/api/token/` den persönlichen API-Token des Benutzers. Man
 sieht genau das, was dieser Benutzer in Paperless sehen darf.
 
-Der Login holt über `/api/token/` den persönlichen API-Token des Benutzers und
-speichert ihn im Browser (bei „Angemeldet bleiben“ dauerhaft, sonst nur für die
-Sitzung).
+Es gibt zwei Betriebsarten, gewählt über `PAPERLESS_UPSTREAM`:
+
+| | Feste Instanz | Adresse bei der Anmeldung |
+|---|---|---|
+| Einstellung | `PAPERLESS_UPSTREAM` gesetzt | `PAPERLESS_UPSTREAM` leer |
+| Weg der Daten | Browser → Docs-Container → Paperless | Browser → Paperless direkt |
+| CORS in Paperless | nicht nötig | nötig (siehe unten) |
+| Gedacht für | die eigene Instanz | eine Docs-Installation für mehrere Paperless-Instanzen |
 
 ## Installation (Docker Compose)
 
@@ -34,48 +42,72 @@ Das Image wird bei jedem Push auf `main` automatisch gebaut und in der GitHub
 Container Registry abgelegt: `ghcr.io/robinvonmises/paperless-alternative-frontend:latest`
 (amd64 und arm64).
 
-In den Paperless-Stack einfügen:
+### Feste Instanz
 
 ```yaml
-  archiv:
+  docs:
     image: ghcr.io/robinvonmises/paperless-alternative-frontend:latest
     restart: unless-stopped
     ports:
       - "8090:80"
     environment:
-      PAPERLESS_UPSTREAM: https://paperless.vonometzinski.de
-      PAPERLESS_HOST: paperless.vonometzinski.de
+      PAPERLESS_UPSTREAM: https://paperless.example.com
+      # optional:
+      # DOCS_AREAS: "Haus:#A2845E,Bank:#FF9500,Steuer:#FF3B30"
 ```
 
-Dann im Reverse Proxy (z. B. Nginx Proxy Manager) einen neuen Host anlegen,
-z. B. `archiv.example.de` → `<docker-host>:8090`, mit SSL.
+Statt der öffentlichen Adresse geht im selben Compose-Netz auch
+`PAPERLESS_UPSTREAM: http://webserver:8000` plus `PAPERLESS_HOST: paperless.example.com`
+und `PAPERLESS_PUBLIC_URL: https://paperless.example.com`.
 
-| Variable | Bedeutung | Standard |
-|---|---|---|
-| `PAPERLESS_UPSTREAM` | Wohin `/api/` weitergeleitet wird. Öffentliche URL oder intern `http://webserver:8000` | `https://paperless.vonometzinski.de` |
-| `PAPERLESS_HOST` | Host-Header für Paperless (muss in `PAPERLESS_ALLOWED_HOSTS` bzw. `PAPERLESS_URL` erlaubt sein) | `paperless.vonometzinski.de` |
-
-> Das Paket in der GitHub Container Registry ist anfangs privat. Entweder unter
-> *GitHub → Packages → paperless-alternative-frontend → Package settings* auf
-> „Public“ stellen, oder auf dem Server einmal `docker login ghcr.io` mit einem
-> Token (Scope `read:packages`) ausführen.
-
-## Anpassen
-
-`web/config.js` legt den App-Namen, den Link zur klassischen Paperless-Oberfläche
-und die Bereiche fest (Tag-Name exakt wie in Paperless plus Farbe). Ohne
-Neubau des Images lässt sich die Datei auch per Volume überschreiben:
+### Adresse bei der Anmeldung
 
 ```yaml
-    volumes:
-      - ./archiv-config.js:/usr/share/nginx/html/config.js:ro
+  docs:
+    image: ghcr.io/robinvonmises/paperless-alternative-frontend:latest
+    restart: unless-stopped
+    ports:
+      - "8090:80"
 ```
+
+Auf der Anmeldeseite erscheint dann zusätzlich das Feld **Paperless-Adresse**.
+Jede Paperless-Instanz, die Docs nutzen soll, muss die Adresse von Docs für
+Anfragen aus dem Browser freigeben (CORS), in deren Paperless-Konfiguration:
+
+```
+PAPERLESS_CORS_ALLOWED_HOSTS=https://docs.example.com
+```
+
+Fehlt die Freigabe, zeigt die Anmeldeseite genau diese Zeile mit der richtigen
+Adresse an. Paperless muss per HTTPS erreichbar sein, wenn Docs per HTTPS läuft.
+
+Weil die App rein statisch ist, kann sie in dieser Betriebsart auch ohne
+Container laufen, z. B. auf GitHub Pages oder einem beliebigen Webserver: einfach
+den Ordner `web/` ausliefern.
+
+Dann im Reverse Proxy (z. B. Nginx Proxy Manager) einen Host anlegen,
+z. B. `docs.example.com` → `<docker-host>:8090`, mit SSL.
+
+### Umgebungsvariablen
+
+| Variable | Bedeutung |
+|---|---|
+| `PAPERLESS_UPSTREAM` | Paperless, an das `/api/` weitergeleitet wird. Leer = Adresse bei der Anmeldung |
+| `PAPERLESS_HOST` | Host-Header für Paperless. Standard: der Host aus `PAPERLESS_UPSTREAM` |
+| `PAPERLESS_PUBLIC_URL` | Link „Klassische Paperless-Oberfläche“. Standard: `PAPERLESS_UPSTREAM`, wenn HTTPS |
+| `DOCS_NAME` | App-Name (Standard „Docs“) |
+| `DOCS_AREAS` | Bereiche auf der Übersicht: `Tag:#Farbe,Tag:#Farbe`. Leer = die acht häufigsten Tags |
+| `DOCS_ALLOWED_SERVERS` | Nur bei Adresse-bei-Anmeldung: erlaubte Paperless-Adressen (Leerzeichen-getrennt). Leer = alle |
+
+Bereiche und Farben kann jeder außerdem in der App unter *Einstellungen* ändern;
+das gilt dann für diesen Browser.
 
 ## Sicherheit
 
 - Strenge Content-Security-Policy: nur eigene Skripte und Styles, keine Inline-Skripte, keine externen Quellen.
 - Treffer-Ausschnitte aus der Volltextsuche und alle Texte aus Paperless werden escaped dargestellt.
 - Cookies werden an Paperless weder gesendet noch von dort übernommen; die App nutzt ausschließlich den Token.
+- Bei „Adresse bei der Anmeldung“ verlassen Zugangsdaten und Dokumente den Browser nur in Richtung der angegebenen Paperless-Instanz. Wer eine fremde Docs-Installation nutzt, vertraut trotzdem deren Betreiber, denn er liefert das JavaScript aus. Im Zweifel selbst hosten oder `DOCS_ALLOWED_SERVERS` setzen.
 - Der Token liegt im Browser-Speicher. Abmelden löscht ihn dort; widerrufen lässt er sich in Paperless unter *Profil → API-Auth-Token neu erzeugen*.
 
 ## Entwicklung
@@ -84,6 +116,7 @@ Kein Build-Schritt: `web/` enthält reines HTML, CSS und JavaScript. Zum lokalen
 Testen reicht der Container:
 
 ```bash
-docker build -t archiv .
-docker run --rm -p 8090:80 -e PAPERLESS_UPSTREAM=https://paperless.example.de -e PAPERLESS_HOST=paperless.example.de archiv
+docker build -t docs .
+docker run --rm -p 8090:80 -e PAPERLESS_UPSTREAM=https://paperless.example.de docs   # feste Instanz
+docker run --rm -p 8090:80 docs                                                   # Adresse bei der Anmeldung
 ```

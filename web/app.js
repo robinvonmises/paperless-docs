@@ -5,7 +5,18 @@
 (function () {
   'use strict';
 
-  const CFG = window.ARCHIV_CONFIG || { appName: 'Docs', areas: [] };
+  const RT = window.DOCS_RUNTIME || { mode: 'direct' };
+  const CFG = Object.assign({ appName: 'Docs', areas: [] }, window.ARCHIV_CONFIG || {});
+  if (RT.name) CFG.appName = RT.name;
+  const DIRECT = RT.mode === 'direct';
+  // DOCS_AREAS="Haus:#A2845E,Bank:#FF9500" aus der Container-Umgebung
+  if (typeof RT.areas === 'string') {
+    RT.areas = RT.areas.split(',').map((x) => x.trim()).filter(Boolean).map((x) => {
+      const i = x.lastIndexOf(':');
+      const color = i > 0 ? x.slice(i + 1).trim() : '';
+      return /^#[0-9a-fA-F]{6}$/.test(color) ? { tag: x.slice(0, i).trim(), color } : { tag: x, color: '#007AFF' };
+    });
+  }
   const $app = document.getElementById('app');
   const $toast = document.getElementById('toast');
   const PALETTE = ['#A2845E', '#FF9500', '#34C759', '#FF3B30', '#FF2D55', '#5856D6', '#30B0C7', '#FFCC00', '#007AFF', '#8E8E93', '#64D2FF', '#AF52DE'];
@@ -118,7 +129,40 @@
     clear() { localStorage.removeItem('archiv.token'); sessionStorage.removeItem('archiv.token'); }
   };
 
+  // Im Direktmodus spricht der Browser selbst mit der Paperless-Instanz, die bei der Anmeldung angegeben wurde
+  const server = {
+    get url() { return DIRECT ? (localStorage.getItem('archiv.server') || '') : ''; },
+    set(u) { localStorage.setItem('archiv.server', u); },
+    get host() { try { return new URL(this.url).host; } catch (e) { return ''; } }
+  };
+  const apiBase = () => (DIRECT ? server.url : '') + '/api';
+  const classicUrl = () => (DIRECT ? server.url : (RT.classicUrl || CFG.classicUrl || ''));
+
+  function normalizeServer(input) {
+    let u = String(input || '').trim();
+    if (!u) throw new Error('Bitte die Adresse deiner Paperless-Instanz angeben.');
+    if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+    let url;
+    try { url = new URL(u); } catch (e) { throw new Error('Das ist keine gültige Adresse.'); }
+    if (location.protocol === 'https:' && url.protocol === 'http:') throw new Error('Diese App läuft über HTTPS und darf deshalb keine HTTP-Adresse ansprechen. Bitte die HTTPS-Adresse deiner Paperless-Instanz verwenden.');
+    return (url.origin + url.pathname).replace(/\/+$/, '').replace(/\/api$/i, '');
+  }
+
   let apiVersion = null;
+  // Paperless meldet die API-Version per Header. Bei direktem Zugriff ist der Header ohne
+  // Freigabe nicht lesbar – dann die höchste unterstützte Version ausprobieren.
+  async function ensureApiVersion() {
+    if (apiVersion) return;
+    for (const v of [9, 8, 7, 6, 5, 4, 3, 2]) {
+      const res = await fetch(apiBase() + '/documents/?page_size=1&fields=id', { headers: { Authorization: 'Token ' + auth.token, Accept: `application/json; version=${v}` } });
+      if (res.status === 401) { auth.clear(); route('#/login'); throw new Error('Nicht angemeldet'); }
+      if (res.status === 406) continue;
+      const h = parseInt(res.headers.get('X-Api-Version') || '', 10);
+      apiVersion = h > 0 ? h : v;
+      return;
+    }
+    apiVersion = 1;
+  }
   // Ab API-Version 9 ist "created" ein reines Datum, davor gibt es dafür "created_date"
   const dateField = () => (apiVersion && apiVersion >= 9 ? 'created' : 'created_date');
 
@@ -128,7 +172,7 @@
     headers.Accept = apiVersion ? `application/json; version=${apiVersion}` : 'application/json';
     let body = opts.body;
     if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
-    const res = await fetch('/api' + path, { method: opts.method || 'GET', headers, body });
+    const res = await fetch(apiBase() + path, { method: opts.method || 'GET', headers, body });
     if (!apiVersion) { const v = parseInt(res.headers.get('X-Api-Version') || '', 10); if (v > 0) apiVersion = v; }
     if (res.status === 401) { auth.clear(); route('#/login'); throw new Error('Nicht angemeldet'); }
     if (!res.ok) {
@@ -199,7 +243,15 @@
   const realTags = (doc) => tagIds(doc).filter((t) => !meta.inboxTags.includes(t));
   const userName = () => (meta.user ? (meta.user.first_name || meta.user.username) : '');
 
-  function areaDefs() { return Array.isArray(prefs.areas) ? prefs.areas : (CFG.areas || []); }
+  function areaDefs() {
+    if (Array.isArray(prefs.areas)) return prefs.areas;
+    if (Array.isArray(RT.areas) && RT.areas.length) return RT.areas;
+    if (Array.isArray(CFG.areas) && CFG.areas.length) return CFG.areas;
+    // Nichts eingestellt: die acht häufigsten Tags
+    return [...meta.tags.values()].filter((t) => !t.is_inbox_tag && (t.document_count || 0) > 0)
+      .sort((a, b) => (b.document_count || 0) - (a.document_count || 0)).slice(0, 8)
+      .map((t, i) => ({ tag: t.name, color: PALETTE[(i * 5) % PALETTE.length] }));
+  }
   function areaList() {
     const byName = new Map([...meta.tags.values()].map((t) => [t.name.toLowerCase(), t]));
     return areaDefs()
@@ -484,9 +536,9 @@
             ${areas.map((a) => `<a href="#/docs?tags=${a.id}" class="${active === 'tag' + a.id ? 'active' : ''}"><span class="dot" data-color="${esc(a.color)}"></span><span>${esc(a.name)}</span><span class="count">${a.count}</span></a>`).join('')}
           </nav>
           <div class="sidebar-foot">
-            ${userName() ? `<span>Angemeldet als ${esc(userName())}</span>` : ''}
+            ${userName() ? `<span>Angemeldet als ${esc(userName())}${DIRECT && server.host ? ` bei ${esc(server.host)}` : ''}</span>` : ''}
             <a href="#/settings">Einstellungen</a>
-            ${CFG.classicUrl ? `<a href="${esc(CFG.classicUrl)}" target="_blank" rel="noopener">Klassische Paperless-Oberfläche</a>` : ''}
+            ${classicUrl() ? `<a href="${esc(classicUrl())}" target="_blank" rel="noopener">Klassische Paperless-Oberfläche</a>` : ''}
             <button type="button" class="linkbtn" data-action="logout">Abmelden</button>
           </div>
         </aside>
@@ -528,6 +580,7 @@
     if (!auth.token) { renderLogin(); return; }
     if (path === '/login') { location.hash = '#/'; return; }
     try {
+      await ensureApiVersion();
       await loadMeta();
       if (path === '/') return await renderHome();
       if (path === '/inbox') return await renderInbox();
@@ -549,38 +602,61 @@
   /* Login                                                               */
   /* ================================================================== */
 
-  function renderLogin(error) {
+  // error ist bereits sicheres HTML (Texte werden vor der Übergabe escaped)
+  function renderLogin(error, keep = {}) {
+    const cur = keep.srv || server.url || (/^https?:\/\/\S+$/.test(RT.allowed || '') ? RT.allowed : '');
     $app.innerHTML = `
       <div class="login">
         <form class="card" id="loginForm" autocomplete="on">
           <div class="brand"><span class="brand-mark">${LOGO(30)}</span>${esc(CFG.appName)}</div>
           <p class="muted login-sub">Mit deinem Paperless-Konto anmelden</p>
-          <div class="field"><label for="u">Benutzername</label><input class="input" id="u" name="username" autocomplete="username" autocapitalize="none" required></div>
+          ${DIRECT ? `<div class="field"><label for="srv">Paperless-Adresse</label><input class="input" id="srv" name="server" type="url" inputmode="url" autocomplete="url" autocapitalize="none" spellcheck="false" placeholder="https://paperless.example.com" value="${esc(cur)}" required></div>` : ''}
+          <div class="field"><label for="u">Benutzername</label><input class="input" id="u" name="username" autocomplete="username" autocapitalize="none" value="${esc(keep.user || '')}" required></div>
           <div class="field"><label for="p">Passwort</label><input class="input" id="p" name="password" type="password" autocomplete="current-password" required></div>
           <label class="checkline"><input type="checkbox" id="remember" checked> Angemeldet bleiben</label>
-          ${error ? `<div class="error" role="alert">${esc(error)}</div>` : ''}
+          ${error ? `<div class="error" role="alert">${error}</div>` : ''}
           <button class="btn big" type="submit">Anmelden</button>
+          ${DIRECT ? '<p class="muted login-note">Dein Browser verbindet sich direkt mit deiner Paperless-Instanz. Zugangsdaten und Dokumente gehen nur dorthin – diese Seite speichert nichts.</p>' : ''}
         </form>
       </div>`;
-    $app.querySelector('#loginForm').addEventListener('submit', async (ev) => {
+    const form = $app.querySelector('#loginForm');
+    form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const btn = ev.target.querySelector('button[type=submit]');
-      btn.disabled = true;
+      form.querySelector('button[type=submit]').disabled = true;
+      let base = '';
+      const keep = { srv: DIRECT ? form.server.value.trim() : '', user: form.username.value.trim() };
       try {
-        const res = await fetch('/api/token/', {
+        if (DIRECT) base = normalizeServer(form.server.value);
+      } catch (e) { renderLogin(esc(e.message), keep); return; }
+      let res;
+      try {
+        res = await fetch(base + '/api/token/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ username: ev.target.username.value.trim(), password: ev.target.password.value })
+          body: JSON.stringify({ username: form.username.value.trim(), password: form.password.value })
         });
-        if (!res.ok) throw new Error(res.status === 400 ? 'Benutzername oder Passwort falsch.' : 'Anmeldung fehlgeschlagen (' + res.status + ').');
-        const data = await res.json();
-        auth.set(data.token, document.getElementById('remember').checked);
-        meta.loaded = false;
-        await refreshInboxCount();
-        location.hash = '#/';
-        render();
-      } catch (e) { renderLogin(e.message); }
+      } catch (e) {
+        // Netzwerkfehler: Adresse falsch, Server nicht erreichbar oder CORS nicht freigegeben
+        renderLogin(DIRECT
+          ? `Keine Verbindung zu <strong>${esc(base)}</strong>. Stimmt die Adresse? Dann muss deine Paperless-Instanz diese App noch zulassen:<code>PAPERLESS_CORS_ALLOWED_HOSTS=${esc(location.origin)}</code>`
+          : 'Paperless ist gerade nicht erreichbar.', keep);
+        return;
+      }
+      if (!res.ok) { renderLogin(res.status === 400 ? 'Benutzername oder Passwort falsch.' : esc(`Anmeldung fehlgeschlagen (${res.status}).`), keep); return; }
+      const data = await res.json();
+      if (DIRECT && base !== server.url) {
+        // andere Instanz: lokale Merkliste usw. gehören zur alten
+        thumbCache.forEach((u) => URL.revokeObjectURL(u)); thumbCache.clear();
+        sessionStorage.removeItem('archiv.nav');
+        prefs.recent = []; prefs.favs = []; prefs.areas = null; savePrefs();
+      }
+      if (DIRECT) server.set(base);
+      auth.set(data.token, form.querySelector('#remember').checked);
+      meta.loaded = false;
+      apiVersion = null;
+      route('#/');
     });
+    if (keep.user) form.querySelector('#p').focus(); else if (DIRECT && cur) form.querySelector('#u').focus();
   }
 
   /* ================================================================== */
@@ -1523,9 +1599,9 @@
         </section>
         <section class="card">
           <h2>Konto</h2>
-          <span class="muted">${userName() ? `Angemeldet als ${esc(userName())}` : 'Angemeldet'}${apiVersion ? ` · Paperless-API v${apiVersion}` : ''}</span>
+          <span class="muted">${userName() ? `Angemeldet als ${esc(userName())}` : 'Angemeldet'}${DIRECT && server.host ? ` bei ${esc(server.host)}` : ''}${apiVersion ? ` · Paperless-API v${apiVersion}` : ''}</span>
           <div class="row">
-            ${CFG.classicUrl ? `<a class="btn plain" href="${esc(CFG.classicUrl)}" target="_blank" rel="noopener">Klassische Oberfläche</a>` : ''}
+            ${classicUrl() ? `<a class="btn plain" href="${esc(classicUrl())}" target="_blank" rel="noopener">Klassische Oberfläche</a>` : ''}
             <button type="button" class="btn ghost-danger" data-action="logout">Abmelden</button>
           </div>
         </section>

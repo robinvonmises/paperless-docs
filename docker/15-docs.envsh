@@ -1,0 +1,39 @@
+#!/bin/sh
+# Wird vom nginx-Entrypoint vor dem Einsetzen der Templates eingelesen (".envsh" = gesourct).
+# Wählt den Betriebsmodus und schreibt die Laufzeit-Einstellungen für die App.
+#
+#   PAPERLESS_UPSTREAM gesetzt  -> Modus "proxy":  /api/ wird an diese eine Paperless-Instanz weitergeleitet
+#   PAPERLESS_UPSTREAM leer     -> Modus "direct": Adresse wird bei der Anmeldung angegeben,
+#                                  der Browser spricht direkt mit Paperless (CORS nötig)
+
+docs_html="${DOCS_HTML_DIR:-/usr/share/nginx/html}"
+docs_src="${DOCS_TEMPLATE_DIR:-/etc/docs}"
+docs_dst="${NGINX_ENVSUBST_TEMPLATE_DIR:-/etc/nginx/templates}"
+
+docs_json() { printf '%s' "$1" | tr -d '\r\n' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/</\\u003c/g'; }
+
+mkdir -p "$docs_dst"
+if [ -n "${PAPERLESS_UPSTREAM:-}" ]; then
+  docs_mode=proxy
+  if [ -z "${PAPERLESS_HOST:-}" ]; then
+    PAPERLESS_HOST=$(printf '%s' "$PAPERLESS_UPSTREAM" | sed -e 's#^[A-Za-z]*://##' -e 's#/.*$##')
+    export PAPERLESS_HOST
+  fi
+  if [ -z "${PAPERLESS_PUBLIC_URL:-}" ]; then
+    case "$PAPERLESS_UPSTREAM" in https://*) PAPERLESS_PUBLIC_URL="$PAPERLESS_UPSTREAM" ;; esac
+  fi
+  cp "$docs_src/proxy.conf.template" "$docs_dst/default.conf.template"
+else
+  docs_mode=direct
+  # Optional auf bestimmte Paperless-Adressen beschränken, z. B. "https://paperless.example.com"
+  DOCS_CONNECT_SRC="${DOCS_ALLOWED_SERVERS:-https: http:}"
+  export DOCS_CONNECT_SRC
+  cp "$docs_src/direct.conf.template" "$docs_dst/default.conf.template"
+fi
+
+printf 'window.DOCS_RUNTIME = {"mode":"%s","name":"%s","classicUrl":"%s","areas":"%s","allowed":"%s"};\n' \
+  "$docs_mode" "$(docs_json "${DOCS_NAME:-}")" "$(docs_json "${PAPERLESS_PUBLIC_URL:-}")" \
+  "$(docs_json "${DOCS_AREAS:-}")" "$(docs_json "${DOCS_ALLOWED_SERVERS:-}")" > "$docs_html/runtime.js"
+
+echo "docs: Modus $docs_mode"
+unset docs_html docs_src docs_dst docs_mode
